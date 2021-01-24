@@ -27,14 +27,15 @@ export default function App() {
 
   const [movies, setMovies] = React.useState([]);
 
+  const scrollX = React.useRef( new Animated.Value(0)).current;
 
   React.useEffect(() => {
     const fetchData = async () => {
       const movies = await getMovies();
       // Add empty items to create fake space
       // [empty_item, ...movies, empty_item]
-      setMovies(movies);
-      // setMovies([{ key: 'empty-left' }, ...movies, { key: 'empty-right' }]);
+      // setMovies(movies); 
+      setMovies([ { key: 'empty-left' }, ...movies, { key: 'empty-right' }]);
     };
 
     if (movies.length === 0) {
@@ -55,27 +56,60 @@ export default function App() {
     <SafeAreaView style={{ flex: 1 }}>
 
       <View style={styles.container}>
-        <FlatList
+        <Animated.FlatList
           showsHorizontalScrollIndicator={false}
-          data={movies.reverse().slice(1)}
+          // data={movies.reverse().slice(1)}
+          data={movies.reverse()}
           keyExtractor={(item) => item.key}
           horizontal
           // removeClippedSubviews={false}
           renderToHardwareTextureAndroid
           contentContainerStyle={{ alignItems: "center" }}
+          snapToInterval ={ITEM_SIZE}
+          decelerationRate={0} // to scroll view work like carousel 
+          bounces={false}
+          onScroll = {
+            Animated.event(
+              [{nativeEvent: {contentOffset:{ x: scrollX } } } ],
+              {useNativeDriver: true}
+            )
+          }
+          scrollEventThrottle = {16}
 
           renderItem={({ item, index }) => {
+
+            if (!item.poster) {
+              return <View style={{ width: EMPTY_ITEM_SIZE, }} />;
+            }
+
+            
+            const inputRange = [
+                // (index - 1) * ITEM_SIZE,
+                // index  * ITEM_SIZE,
+                // (index + 1) * ITEM_SIZE, 
+                (index - 2) * ITEM_SIZE,
+                (index - 1) * ITEM_SIZE,
+                index  * ITEM_SIZE,
+
+
+            ]
+
+            const translateY = scrollX.interpolate({
+              inputRange,
+              outputRange: [0, -50, 0]
+            })
+
             return (
               <View style={{ width: ITEM_SIZE }}>
-                <View
+                <Animated.View
                   style={{
                     marginHorizontal: SPACING,
-                    paddingHorizontal: SPACING * 2,
+                    paddingHorizontal: SPACING * 1.5,
                     alignItems: 'center',
                     backgroundColor: "white",
                     borderRadius: 34,
+                    transform: [{translateY}]
                   }}>
-
 
                   <Image
                     source={{ uri: item.poster }}
@@ -91,13 +125,13 @@ export default function App() {
                     {item.description}
                   </Text>
 
-                </View>
+                </Animated.View>
               </View>
             )
           }}
         >
 
-        </FlatList>
+        </Animated.FlatList>
       </View>
 
     </SafeAreaView>
